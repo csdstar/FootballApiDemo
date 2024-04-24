@@ -1,0 +1,26 @@
+package com.example.footballapidemo.data
+
+data class Team(
+    val id: Int,
+    val address: String?,
+    val area: Area?,
+    val clubColors: String?,
+    val contract: Contract?,
+    val crest: String?,
+    val founded: Int?,
+    val name: String?,
+    val runningCompetitions: List<Competition>?,
+    val shortName: String?,
+    val tla: String?,
+    val venue: String?,
+    val website: String?,
+    val bench: List<Person>,
+    val coach: Coach?,
+    val formation: Any?,
+    val leagueRank: Any?,
+    val lineup: List<Person>?,
+    val lastUpdated: String?,
+    val marketValue: Int?,
+    val squad: List<Person>,
+    val staff: List<Any>,
+)
