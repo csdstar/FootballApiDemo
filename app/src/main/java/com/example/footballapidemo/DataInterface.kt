@@ -9,7 +9,7 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-interface FootballDataInterface {
+interface DataInterface {
     @GET("teams/")
     suspend fun getTeams():Response<Teams>
     //OK

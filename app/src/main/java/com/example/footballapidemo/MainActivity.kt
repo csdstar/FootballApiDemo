@@ -15,6 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.example.footballapidemo.news.NewsScreen
+import com.example.footballapidemo.news.NewsViewModel
 
 const val TAG = "MyTag"
 
@@ -22,14 +24,9 @@ class MainActivity : ComponentActivity() {
     @RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val viewModel = ApiViewModel()
+        val viewModel = MatchesViewModel()
         setContent {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                ApiTest(viewModel)
-            }
+            MatchesScreen(viewModel)
         }
     }
 }
@@ -43,14 +40,13 @@ fun ApiTest(viewModel: ApiViewModel) {
             .background(Color.Yellow)
     ){
         Text(viewModel.text.value)
-
     }
 
     val api = RetrofitInstance.api
 
 
     LaunchedEffect(Unit){
-        viewModel.testApi(
+        ApiViewModel.testApi(
             apiFunc = {api.getTeamById(64)},
             ::teamCallback,
             viewModel

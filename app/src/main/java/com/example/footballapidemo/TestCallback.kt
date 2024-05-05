@@ -1,7 +1,6 @@
 package com.example.footballapidemo
 
 import android.util.Log
-import com.example.basic_ui_demo.news.NewsJson
 import com.example.footballapidemo.data.Matches
 import com.example.footballapidemo.data.Person
 import com.example.footballapidemo.data.Team
@@ -38,8 +37,4 @@ fun teamCallback(team: Team, viewModel: ApiViewModel){
 fun personCallback(person: Person, viewModel: ApiViewModel){
     viewModel.changeText("")
     viewModel.addText("name: ${person.name} \n")
-}
-
-fun newsJsonCallback(newsJson: NewsJson, viewModel: ApiViewModel){
-    var newsList = newsJson.result?.newsList
 }

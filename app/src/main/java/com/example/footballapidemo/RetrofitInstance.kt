@@ -20,13 +20,13 @@ object RetrofitInstance{
     }.build()
     //构建OkHTTPClient对象，用于在每次使用api实例时添加api key
 
-    val api: FootballDataInterface by lazy {
+    val api: DataInterface by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(FootballDataInterface::class.java)
+            .create(DataInterface::class.java)
     }
 
 }

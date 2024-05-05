@@ -1,4 +1,4 @@
-package com.example.basic_ui_demo.news
+package com.example.footballapidemo.news
 
 data class News(
     val ctime: String,  //新闻时间
