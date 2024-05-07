@@ -1,6 +1,6 @@
 package com.example.footballapidemo
 
-import com.example.footballapidemo.data.Matches
+import com.example.footballapidemo.data.MatchesJson
 import com.example.footballapidemo.data.Person
 import com.example.footballapidemo.data.Team
 import com.example.footballapidemo.data.Teams
@@ -21,14 +21,14 @@ interface DataInterface {
     //OK
 
     @GET("matches")
-    suspend fun getMatches():Response<Matches>
+    suspend fun getMatches():Response<MatchesJson>
     //OK
 
     // 获取特定联赛的比赛数据,api定义联赛是competition，这里用个人习惯的league
-    @GET("competitions/{league}/matches")
-    suspend fun getLeagueMatches(
-        @Path("league") league:String
-    ):Response<Matches>
+    @GET("competitions/{competitionCode}/matches")
+    suspend fun getMatchesByCompetition(
+        @Path("competitionCode") competitionCode:String
+    ):Response<MatchesJson>
     //OK
 
 
@@ -46,7 +46,7 @@ interface DataInterface {
         @Query("dateFrom") dateFrom: String = "",
         @Query("dateTo") dateTo: String = "",
         @Query("season") season:Int = 2023
-    ): Response<Matches>
+    ): Response<MatchesJson>
 
     @GET("persons/{personId}")
     suspend fun getPersonById(

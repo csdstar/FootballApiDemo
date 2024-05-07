@@ -4,6 +4,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import com.example.footballapidemo.news.NewsViewModel
 const val TAG = "MyTag"
 
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     @RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,31 +33,3 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
-@Composable
-fun ApiTest(viewModel: ApiViewModel) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Yellow)
-    ){
-        Text(viewModel.text.value)
-    }
-
-    val api = RetrofitInstance.api
-
-
-    LaunchedEffect(Unit){
-        ApiViewModel.testApi(
-            apiFunc = {api.getTeamById(64)},
-            ::teamCallback,
-            viewModel
-        )
-
-
-//        viewModel.testApi(
-//            {api.getLeagueTeams("PL")},
-//            ::teamsCallback
-//        )
-    }
-}

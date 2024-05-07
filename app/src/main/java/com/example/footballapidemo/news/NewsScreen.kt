@@ -46,8 +46,8 @@ fun NewsScreen(viewModel: NewsViewModel) {
                 onClick = {
                     ApiViewModel.testApi(
                         { api.getNews() },
-                        ::newsJsonCallback,
-                        viewModel
+                        viewModel,
+                        ::newsJsonCallback
                     )
                     Log.d("MyTag","Clicked")
                 }
