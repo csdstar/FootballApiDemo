@@ -2,6 +2,7 @@ package com.example.footballapidemo
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -10,14 +11,14 @@ import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 //将UTC时间转换为字符串格式的中国时间
-fun convertUtcToChinaDate(utcTimeString: String?): String {
-    val utcDateTime = LocalDateTime.parse(utcTimeString, DateTimeFormatter.ISO_DATE_TIME)
-    val utcZoneId = ZoneId.of("UTC")
+fun convertUtcToChinaLocalDate(utcTimeString: String?): LocalDate {
+    // 解析UTC时间字符串为Instant对象
+    val utcTime = Instant.parse(utcTimeString)
+    // 获取中国时区
     val chinaZoneId = ZoneId.of("Asia/Shanghai")
-    val utcZonedDateTime = ZonedDateTime.of(utcDateTime, utcZoneId)
-    val chinaZonedDateTime = utcZonedDateTime.withZoneSameInstant(chinaZoneId)
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    return formatter.format(chinaZonedDateTime).toString()
+    // 将UTC时间转换为中国时区时间
+    val chinaTime = ZonedDateTime.ofInstant(utcTime, chinaZoneId)
+    return chinaTime.toLocalDate()
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -34,14 +35,14 @@ fun convertUtcToChinaTime(utcTimeString: String?): String {
 
 @RequiresApi(Build.VERSION_CODES.O)
 //获取当前日期
-fun getCurrentLocalDate(): String {
+fun getCurrentDateString(): String {
     val currentDate = LocalDate.now()
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     return currentDate.format(formatter)
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-fun getDateWithOffset(date: String, days: Long, isForward: Boolean): String {
+fun getDateStringWithOffset(date: String, days: Long, isForward: Boolean): String {
     // 将输入的日期字符串解析为 LocalDate 对象
     val currentDate = LocalDate.parse(date)
 

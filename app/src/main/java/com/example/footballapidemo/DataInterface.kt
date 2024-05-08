@@ -21,13 +21,18 @@ interface DataInterface {
     //OK
 
     @GET("matches")
-    suspend fun getMatches():Response<MatchesJson>
+    suspend fun getMatches(
+        @Query("dateFrom") dateFrom: String = "",
+        @Query("dateTo") dateTo: String = "",
+    ):Response<MatchesJson>
     //OK
 
     // 获取特定联赛的比赛数据,api定义联赛是competition，这里用个人习惯的league
     @GET("competitions/{competitionCode}/matches")
     suspend fun getMatchesByCompetition(
-        @Path("competitionCode") competitionCode:String
+        @Path("competitionCode") competitionCode:String,
+        @Query("dateFrom") dateFrom: String = "",
+        @Query("dateTo") dateTo: String = "",
     ):Response<MatchesJson>
     //OK
 

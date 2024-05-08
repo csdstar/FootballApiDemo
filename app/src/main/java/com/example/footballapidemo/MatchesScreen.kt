@@ -1,6 +1,7 @@
 package com.example.footballapidemo
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.background
@@ -18,13 +19,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,13 +40,13 @@ import com.example.footballapidemo.data.Match
 import com.example.footballapidemo.data.Team
 import com.lt.compose_views.compose_pager.ComposePager
 import com.lt.compose_views.compose_pager.rememberComposePagerState
+import com.lt.compose_views.pager_indicator.TextPagerIndicator
 import com.lt.compose_views.refresh_layout.RefreshContentStateEnum
 import com.lt.compose_views.refresh_layout.RefreshLayoutState
 import com.lt.compose_views.refresh_layout.VerticalRefreshableLayout
 import com.lt.compose_views.refresh_layout.rememberRefreshLayoutState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -50,89 +54,72 @@ import java.time.LocalDate
 @RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
 @Composable
 fun MatchesScreen(viewModel: MatchesViewModel) {
-    MatchesScreenDetail(viewModel)
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
-@Composable
-fun MatchesScreenDetail(viewModel: MatchesViewModel) {
     val competitions = MatchesViewModel.competitions
     val competitionsCode = MatchesViewModel.competitionsCode
-
     val composePagerState = rememberComposePagerState()
+    var vmIndex by viewModel.index
+    val curIndex by composePagerState.getCurrSelectIndexState()
+    val matchGroups = remember(curIndex) { viewModel.pagesData[curIndex].matchGroups }
+    var isLoading by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        ScrollableTabRow(
-            selectedTabIndex = composePagerState.getCurrSelectIndexState().value
-        ) {
-            competitions.forEachIndexed { index, tab ->
-                Tab(
-                    selected = composePagerState.getCurrSelectIndexState().value == index,
-                    onClick = {
-                        composePagerState.setPageIndex(index)
-                    },
-                    text = { Text(text = tab) }
-                )
+        TextPagerIndicator(
+            texts = competitions,
+            offsetPercentWithSelectFlow = composePagerState.createChildOffsetPercentFlow(),
+            selectIndexFlow = composePagerState.createCurrSelectIndexFlow(),
+            fontSize = 16.sp,
+            selectFontSize = 16.sp,
+            textColor = Color.Black,
+            selectTextColor = Color.Green,
+            selectIndicatorColor = Color.Green,
+            onIndicatorClick = { composePagerState.setPageIndexWithAnimate(it) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(30.dp),
+            userCanScroll = true,
+            margin = 20.dp
+        )
+        LaunchedEffect(curIndex) {
+            isLoading = true
+            vmIndex = curIndex
+            val code = competitionsCode[curIndex]
+            val dateF = viewModel.pagesData[curIndex].dateFrom.value
+            val dateT = viewModel.pagesData[curIndex].dateTo.value
+            Log.d(TAG, "curIndex:$curIndex")
+            if (viewModel.pagesData[curIndex].matchGroups.isEmpty()) {
+                addMatchesByCompetitionCode(code, dateF, dateT, viewModel)
             }
-        }
-        VerticalRefreshableLayout(
-            topRefreshLayoutState = rememberRefreshLayoutState(
-                onRefreshListener = topRefresh(viewModel)
-            ),  //顶部刷新
-            bottomRefreshLayoutState = rememberRefreshLayoutState(
-                onRefreshListener = bottomRefresh(viewModel)
-            ),  //底部加载
+            isLoading = false
+        } //每次切换页面时进行的初始化加载
+
+        ComposePager(
+            pageCount = competitions.size,
+            modifier = Modifier.fillMaxSize(),
+            composePagerState = composePagerState,
+            orientation = Orientation.Horizontal,
+            pageCache = 1
         ) {
-            ComposePager(
-                pageCount = competitions.size,
-                modifier = Modifier.fillMaxSize(),
-                composePagerState = composePagerState,
-                orientation = Orientation.Horizontal,
-                pageCache = 2
+            VerticalRefreshableLayout(
+                topRefreshLayoutState = rememberRefreshLayoutState(
+                    onRefreshListener = topRefresh(viewModel)
+                ),  //顶部刷新
+                bottomRefreshLayoutState = rememberRefreshLayoutState(
+                    onRefreshListener = bottomRefresh(viewModel)
+                ),  //底部加载
             ) {
-                val curIndex by composePagerState.getCurrSelectIndexState()
-                val matches = remember(curIndex) { viewModel.pagesData[curIndex].matchList }
-                Column {
-                    Button(
-                        onClick = {
-                            getMatchesByCompetitionCode(
-                                competitionsCode[curIndex],
-                                viewModel
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth(0.5f)
-                            .height(50.dp)
-                    ) {
-                        Text(text = curIndex.toString())
+                if (isLoading) {
+                    CircularProgressIndicator()
+                } else {
+                    Column {
+                        Spacer(modifier = Modifier.height(20.dp))
+                        MatchGroup(matchGroups)
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
-                    MatchGroup(matches = matches)
                 }
             }
         }
-    }
-}
-
-@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
-fun getMatchesByCompetitionCode(code: String, viewModel: MatchesViewModel) {
-    val api = RetrofitInstance.api
-    if (code != "") {
-        ApiViewModel.testApi(
-            apiFunc = { api.getMatchesByCompetition(code) },
-            objectiveViewModel = viewModel,
-            bodyCallback = ::competitionMatchesCallback,
-        )
-    } else {
-        ApiViewModel.testApi(
-            { api.getMatches() },
-            viewModel,
-            ::matchesCallback
-        )
     }
 }
 
@@ -237,19 +224,26 @@ fun RightTeamBox(modifier: Modifier, team: Team) {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun MatchGroup(matches: List<Match>) {
-    val matchGroups = matches.groupBy {
-        val chinaTime = convertUtcToChinaDate(it.utcDate)
-        LocalDate.parse(chinaTime.split(" ")[0])
+fun MatchGroup(matchGroups: Map<LocalDate, List<Match>>) {
+    val listState = rememberLazyListState()
+    val firstVisibleItemIndex = remember { mutableIntStateOf(0) }
+    LaunchedEffect(matchGroups) {
+        // 记住当前列表的可见位置
+        firstVisibleItemIndex.intValue = listState.firstVisibleItemIndex
     }
+    //将条目按日期排序
+    val sortedMatchGroups = matchGroups.toList().sortedBy { (date, _) -> date }
 
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        matchGroups.forEach { (date, matches) ->
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        state = listState
+    ) {
+        sortedMatchGroups.forEach { (date, matches) ->
             item {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .height(70.dp)
+                        .height(30.dp)
                         .background(Color.LightGray),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -265,20 +259,40 @@ fun MatchGroup(matches: List<Match>) {
     }
 }
 
+@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
+@RequiresApi(Build.VERSION_CODES.O)
 fun topRefresh(
     viewModel: MatchesViewModel
 ): (RefreshLayoutState.() -> Unit) = {
     CoroutineScope(Dispatchers.IO).launch {
-        delay(1000)
+        val index by viewModel.index
+        val code = MatchesViewModel.competitionsCode[index]
+        val days: Long = if (index == 0) 5 else 15
+        var dateFrom by viewModel.pagesData[index].dateFrom
+        val newDateFrom = getDateStringWithOffset(dateFrom, days, false)
+        Log.d(TAG,"$dateFrom  $newDateFrom")
+
+        addMatchesByCompetitionCode(code,newDateFrom,dateFrom,viewModel)
+        dateFrom = newDateFrom
         setRefreshState(RefreshContentStateEnum.Stop)
     }
 }
 
-private fun bottomRefresh(
+@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
+@RequiresApi(Build.VERSION_CODES.O)
+fun bottomRefresh(
     viewModel: MatchesViewModel
-): (RefreshLayoutState.() -> Unit) = {
+): (RefreshLayoutState.() -> Unit) ={
     CoroutineScope(Dispatchers.IO).launch {
-        delay(1000)
+        val index by viewModel.index
+        val code = MatchesViewModel.competitionsCode[index]
+        val days: Long = if (index == 0) 5 else 15
+        var dateTo by viewModel.pagesData[index].dateTo
+        val newDateTo = getDateStringWithOffset(dateTo, days, true)
+        Log.d(TAG,"$dateTo  $newDateTo")
+
+        addMatchesByCompetitionCode(code,dateTo,newDateTo,viewModel)
+        dateTo = newDateTo
         setRefreshState(RefreshContentStateEnum.Stop)
     }
 }
