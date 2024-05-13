@@ -1,3 +1,5 @@
+@file:RequiresApi(Build.VERSION_CODES.O)
+
 package com.example.footballapidemo
 
 import android.os.Build
@@ -9,7 +11,6 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-@RequiresApi(Build.VERSION_CODES.O)
 //将UTC时间转换为字符串格式的中国时间
 fun convertUtcToChinaLocalDate(utcTimeString: String?): LocalDate {
     // 解析UTC时间字符串为Instant对象
@@ -21,7 +22,6 @@ fun convertUtcToChinaLocalDate(utcTimeString: String?): LocalDate {
     return chinaTime.toLocalDate()
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 //将字符串格式的UTC时间转换为中国日期
 fun convertUtcToChinaTime(utcTimeString: String?): String {
     val utcDateTime = LocalDateTime.parse(utcTimeString, DateTimeFormatter.ISO_DATE_TIME)
@@ -33,7 +33,7 @@ fun convertUtcToChinaTime(utcTimeString: String?): String {
     return formatter.format(chinaZonedDateTime)
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
+
 //获取当前日期
 fun getCurrentDateString(): String {
     val currentDate = LocalDate.now()
@@ -41,7 +41,6 @@ fun getCurrentDateString(): String {
     return currentDate.format(formatter)
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 fun getDateStringWithOffset(date: String, days: Long, isForward: Boolean): String {
     // 将输入的日期字符串解析为 LocalDate 对象
     val currentDate = LocalDate.parse(date)
@@ -56,4 +55,30 @@ fun getDateStringWithOffset(date: String, days: Long, isForward: Boolean): Strin
     // 格式化日期并返回
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     return resultDate.format(formatter)
+}
+
+
+fun formatDate(year: String, month: String, day: String): String {
+    val yearInt = year.toInt()
+    val monthInt = month.toInt()
+    val dayInt = day.toInt()
+
+    val date = LocalDate.of(yearInt, monthInt, dayInt)
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+    return date.format(formatter)
+}
+
+fun isDateValid(dateFrom: String, dateTo: String): Boolean {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val fromDate = LocalDate.parse(dateFrom, formatter)
+    val toDate = LocalDate.parse(dateTo, formatter)
+    return !fromDate.isAfter(toDate)
+}
+
+fun isDateInvalid(dateFrom: String, dateTo: String): Boolean {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val fromDate = LocalDate.parse(dateFrom, formatter)
+    val toDate = LocalDate.parse(dateTo, formatter)
+    return fromDate.isAfter(toDate)
 }

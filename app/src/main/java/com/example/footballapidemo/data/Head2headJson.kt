@@ -1,7 +1,8 @@
 package com.example.footballapidemo.data
 
-data class Anys<T>(
+data class Head2headJson(
+    val aggregates: Aggregates,
     val filters: Filters,
-    val anys: List<T>,
+    val matches: List<Match>,
     val resultSet: ResultSet
 )

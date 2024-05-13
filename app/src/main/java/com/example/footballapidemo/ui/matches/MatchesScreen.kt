@@ -1,4 +1,4 @@
-package com.example.footballapidemo
+package com.example.footballapidemo.ui.matches
 
 import android.os.Build
 import android.util.Log
@@ -19,16 +19,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,8 +34,16 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.footballapidemo.ApiViewModel
+import com.example.footballapidemo.CrestImage
+import com.example.footballapidemo.MatchesViewModel
+import com.example.footballapidemo.MatchesViewModel.Companion.competitionsCode
+import com.example.footballapidemo.TAG
+import com.example.footballapidemo.addMatchesByCompetitionCode
+import com.example.footballapidemo.convertUtcToChinaTime
 import com.example.footballapidemo.data.Match
 import com.example.footballapidemo.data.Team
+import com.example.footballapidemo.getDateStringWithOffset
 import com.lt.compose_views.compose_pager.ComposePager
 import com.lt.compose_views.compose_pager.rememberComposePagerState
 import com.lt.compose_views.pager_indicator.TextPagerIndicator
@@ -50,73 +56,104 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-@RequiresApi(Build.VERSION_CODES.O)
 @RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MatchesScreen(viewModel: MatchesViewModel) {
     val competitions = MatchesViewModel.competitions
-    val competitionsCode = MatchesViewModel.competitionsCode
+    //联赛名
+
     val composePagerState = rememberComposePagerState()
-    var vmIndex by viewModel.index
+    //pagerState
+
     val curIndex by composePagerState.getCurrSelectIndexState()
+    //pager的当前index
+
     val matchGroups = remember(curIndex) { viewModel.pagesData[curIndex].matchGroups }
-    var isLoading by remember { mutableStateOf(true) }
+    //当前页面的matchGroup
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        TextPagerIndicator(
-            texts = competitions,
-            offsetPercentWithSelectFlow = composePagerState.createChildOffsetPercentFlow(),
-            selectIndexFlow = composePagerState.createCurrSelectIndexFlow(),
-            fontSize = 16.sp,
-            selectFontSize = 16.sp,
-            textColor = Color.Black,
-            selectTextColor = Color.Green,
-            selectIndicatorColor = Color.Green,
-            onIndicatorClick = { composePagerState.setPageIndexWithAnimate(it) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(30.dp),
-            userCanScroll = true,
-            margin = 20.dp
-        )
-        LaunchedEffect(curIndex) {
-            isLoading = true
-            vmIndex = curIndex
-            val code = competitionsCode[curIndex]
-            val dateF = viewModel.pagesData[curIndex].dateFrom.value
-            val dateT = viewModel.pagesData[curIndex].dateTo.value
-            Log.d(TAG, "curIndex:$curIndex")
-            if (viewModel.pagesData[curIndex].matchGroups.isEmpty()) {
-                addMatchesByCompetitionCode(code, dateF, dateT, viewModel)
+    //val listState = remember(curIndex) { viewModel.pagesData[curIndex].listState }
+    //当前页面的LazyListState
+
+    val isLoading by viewModel.isLoading
+
+    val isSearching by viewModel.isSearching
+
+    val apiMessage by ApiViewModel.message
+
+    if (isSearching)
+        SearchCompose(viewModel)
+
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+
+            LaunchedEffect(curIndex) {
+                pageInitialize(viewModel, curIndex)
             }
-            isLoading = false
-        } //每次切换页面时进行的初始化加载
 
-        ComposePager(
-            pageCount = competitions.size,
-            modifier = Modifier.fillMaxSize(),
-            composePagerState = composePagerState,
-            orientation = Orientation.Horizontal,
-            pageCache = 1
-        ) {
-            VerticalRefreshableLayout(
-                topRefreshLayoutState = rememberRefreshLayoutState(
-                    onRefreshListener = topRefresh(viewModel)
-                ),  //顶部刷新
-                bottomRefreshLayoutState = rememberRefreshLayoutState(
-                    onRefreshListener = bottomRefresh(viewModel)
-                ),  //底部加载
+            TextPagerIndicator(
+                texts = competitions,
+                offsetPercentWithSelectFlow = composePagerState.createChildOffsetPercentFlow(),
+                selectIndexFlow = composePagerState.createCurrSelectIndexFlow(),
+                fontSize = 16.sp,
+                selectFontSize = 16.sp,
+                textColor = Color.Black,
+                selectTextColor = Color.Green,
+                selectIndicatorColor = Color.Green,
+                onIndicatorClick = { composePagerState.setPageIndexWithAnimate(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(30.dp),
+                userCanScroll = true,
+                margin = 20.dp
+            )
+
+            ComposePager(
+                pageCount = competitions.size,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .align(Alignment.CenterHorizontally),
+                composePagerState = composePagerState,
+                orientation = Orientation.Horizontal,
+                pageCache = 1,
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator()
-                } else {
-                    Column {
-                        Spacer(modifier = Modifier.height(20.dp))
-                        MatchGroup(matchGroups)
+                Box(Modifier.fillMaxSize()) {
+                    if (isLoading){
+                        Column(
+                            Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ){
+                            Text(
+                                text = apiMessage,
+                                fontSize = 20.sp
+                            )
+                            Spacer(modifier = Modifier.height(15.dp))
+                            CircularProgressIndicator()
+                        }
                     }
+                    else {
+                        VerticalRefreshableLayout(
+                            topRefreshLayoutState = rememberRefreshLayoutState(
+                                onRefreshListener = topRefresh(viewModel)
+                            ),  //顶部刷新
+                            bottomRefreshLayoutState = rememberRefreshLayoutState(
+                                onRefreshListener = bottomRefresh(viewModel)
+                            ),  //底部加载
+                        ) {
+                            Column {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                MatchGroup(matchGroups)
+                            }
+                        }
+                    }
+                    //悬浮查找按钮
+                    FloatingButtonCompose(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(bottom = 30.dp),
+                        viewModel = viewModel
+                    )
                 }
             }
         }
@@ -124,8 +161,9 @@ fun MatchesScreen(viewModel: MatchesViewModel) {
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
+@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
 @Composable
-fun MatchRow(match: Match) {
+fun MatchRow(match: Match) {  //单个比赛的ui
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -223,20 +261,16 @@ fun RightTeamBox(modifier: Modifier, team: Team) {
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
+@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
 @Composable
-fun MatchGroup(matchGroups: Map<LocalDate, List<Match>>) {
-    val listState = rememberLazyListState()
-    val firstVisibleItemIndex = remember { mutableIntStateOf(0) }
-    LaunchedEffect(matchGroups) {
-        // 记住当前列表的可见位置
-        firstVisibleItemIndex.intValue = listState.firstVisibleItemIndex
-    }
-    //将条目按日期排序
+fun MatchGroup(matchGroups: Map<LocalDate, SnapshotStateList<Match>>) {
+    //分日期显示比赛列表
+
     val sortedMatchGroups = matchGroups.toList().sortedBy { (date, _) -> date }
+    //将条目按日期排序
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        state = listState
     ) {
         sortedMatchGroups.forEach { (date, matches) ->
             item {
@@ -261,18 +295,18 @@ fun MatchGroup(matchGroups: Map<LocalDate, List<Match>>) {
 
 @RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
 @RequiresApi(Build.VERSION_CODES.O)
-fun topRefresh(
+fun topRefresh(  //顶部刷新
     viewModel: MatchesViewModel
 ): (RefreshLayoutState.() -> Unit) = {
     CoroutineScope(Dispatchers.IO).launch {
         val index by viewModel.index
-        val code = MatchesViewModel.competitionsCode[index]
-        val days: Long = if (index == 0) 5 else 15
+        val code = competitionsCode[index]
+        val days: Long = if (index == 0) 3 else 15
         var dateFrom by viewModel.pagesData[index].dateFrom
         val newDateFrom = getDateStringWithOffset(dateFrom, days, false)
-        Log.d(TAG,"$dateFrom  $newDateFrom")
+        Log.d(TAG, "$dateFrom  $newDateFrom")
 
-        addMatchesByCompetitionCode(code,newDateFrom,dateFrom,viewModel)
+        addMatchesByCompetitionCode(code, newDateFrom, dateFrom, viewModel)
         dateFrom = newDateFrom
         setRefreshState(RefreshContentStateEnum.Stop)
     }
@@ -280,19 +314,43 @@ fun topRefresh(
 
 @RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
 @RequiresApi(Build.VERSION_CODES.O)
-fun bottomRefresh(
+fun bottomRefresh(  //底部加载
     viewModel: MatchesViewModel
-): (RefreshLayoutState.() -> Unit) ={
+): (RefreshLayoutState.() -> Unit) = {
     CoroutineScope(Dispatchers.IO).launch {
         val index by viewModel.index
-        val code = MatchesViewModel.competitionsCode[index]
-        val days: Long = if (index == 0) 5 else 15
+        val code = competitionsCode[index]
+        val days: Long = if (index == 0) 3 else 15
         var dateTo by viewModel.pagesData[index].dateTo
         val newDateTo = getDateStringWithOffset(dateTo, days, true)
-        Log.d(TAG,"$dateTo  $newDateTo")
+        Log.d(TAG, "$dateTo  $newDateTo")
 
-        addMatchesByCompetitionCode(code,dateTo,newDateTo,viewModel)
+        addMatchesByCompetitionCode(code, dateTo, newDateTo, viewModel)
         dateTo = newDateTo
         setRefreshState(RefreshContentStateEnum.Stop)
     }
+}
+
+@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
+@RequiresApi(Build.VERSION_CODES.O)
+suspend fun pageInitialize(viewModel: MatchesViewModel, curIndex: Int) {
+    //每次切换页面时进行的初始化加载
+
+    var vmIndex by viewModel.index
+    //viewModel中的index
+    var isLoading by viewModel.isLoading
+    var isSearching by viewModel.isSearching
+
+
+    isSearching = false
+    isLoading = true
+    vmIndex = curIndex
+    val code = competitionsCode[curIndex]
+    val dateFrom = viewModel.pagesData[curIndex].dateFrom.value
+    val dateTo = viewModel.pagesData[curIndex].dateTo.value
+    Log.d(TAG, "curIndex:$curIndex")
+
+    if (viewModel.pagesData[curIndex].matchGroups.isEmpty())
+        addMatchesByCompetitionCode(code, dateFrom, dateTo, viewModel)
+    isLoading = false
 }

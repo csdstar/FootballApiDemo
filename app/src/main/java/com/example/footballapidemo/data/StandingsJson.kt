@@ -1,9 +1,9 @@
 package com.example.footballapidemo.data
 
-data class TopScorers(
+data class StandingsJson(
+    val area: Area,
     val competition: Competition,
-    val count: Int,
     val filters: Filters,
     val season: Season,
-    val scorers: List<Scorer>
+    val standings: List<Standing>
 )

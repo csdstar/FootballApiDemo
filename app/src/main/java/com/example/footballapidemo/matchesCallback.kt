@@ -1,3 +1,6 @@
+@file:RequiresApi(Build.VERSION_CODES.O)
+@file:RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
+
 package com.example.footballapidemo
 
 import android.os.Build
@@ -5,7 +8,7 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import com.example.footballapidemo.data.MatchesJson
 
-@RequiresApi(Build.VERSION_CODES.O)
+
 fun competitionMatchesCallback(matchesJson: MatchesJson, viewModel: MatchesViewModel) {
     val code = matchesJson.competition.code
     val index = MatchesViewModel.competitionsCode.indexOf(code)
@@ -15,7 +18,6 @@ fun competitionMatchesCallback(matchesJson: MatchesJson, viewModel: MatchesViewM
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 fun matchesCallback(matchesJson: MatchesJson, viewModel: MatchesViewModel) {
     val matches = matchesJson.matches
     matches.forEach {
@@ -23,8 +25,7 @@ fun matchesCallback(matchesJson: MatchesJson, viewModel: MatchesViewModel) {
     }
 }
 
-@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
-@RequiresApi(Build.VERSION_CODES.O)
+
 suspend fun addMatchesByCompetitionCode(
     code: String, dateFrom: String, dateTo: String, viewModel: MatchesViewModel
 ) {
@@ -51,8 +52,7 @@ suspend fun addMatchesByCompetitionCode(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-@RequiresExtension(extension = Build.VERSION_CODES.S, version = 7)
+
 fun getMatchesByCompetitionCode(code: String, viewModel: MatchesViewModel) {
     val api = RetrofitInstance.api
     if (code != "") {
